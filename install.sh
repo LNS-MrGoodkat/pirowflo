@@ -1,6 +1,11 @@
 #!/bin/bash
 # https://stackoverflow.com/questions/9449417/how-do-i-assign-the-output-of-a-command-into-an-array
 
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
 echo " "
 echo " "
 echo " "
@@ -88,6 +93,7 @@ echo "-----------------------------------------------"
 echo " "
 
 echo "PRETTY_HOSTNAME=PiRowFlo" | sudo tee -a /etc/machine-info > /dev/null
+sudo bluetoothctl system-alias "PiRowFlo"
 #echo "PRETTY_HOSTNAME=S4 Comms PI" | sudo tee -a /etc/machine-info > /dev/null
 
 
