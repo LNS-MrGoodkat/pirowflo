@@ -31,7 +31,7 @@ echo "----------------------------------------------"
 echo "installed needed packages for python          "
 echo "----------------------------------------------"
 
-sudo apt-get install -y python3 python3-gi python3-gi-cairo gir1.2-gtk-3.0 python3-pip libatlas-base-dev libglib2.0-dev libgirepository1.0-dev libcairo2-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7 libtiff5
+sudo apt-get install -y python3 python3-gi python3-gi-cairo python3-cairo-dev gir1.2-gtk-3.0 python3-pip libatlas-base-dev libglib2.0-dev libgirepository1.0-dev libcairo2-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7 libtiff5 python3-numpy
 
 echo " "
 
@@ -42,7 +42,8 @@ echo "install needed python3 modules for the project        "
 echo "----------------------------------------------"
 echo " "
 
-sudo pip3 install -r requirements.txt
+export repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+sudo pip3 install -r ${repo_dir}/requirements.txt
 
 echo " "
 echo "-------------------------------------------------------"
@@ -77,8 +78,8 @@ echo " add user to the group bluetoot and dialout   "
 echo "----------------------------------------------"
 
 
-sudo usermod -a -G bluetooth pi
-sudo usermod -a -G dialout pi
+sudo usermod -a -G bluetooth $(who -m | awk '{print $1;}')
+sudo usermod -a -G dialout   $(who -m | awk '{print $1;}')
 
 echo " "
 echo "-----------------------------------------------"
@@ -100,22 +101,22 @@ echo " "
 
 # generate supervisord.conf from supervisord.conf.orig with updated paths
 #
-export repo_dir=$(cd $(dirname $0) > /dev/null 2>&1; pwd -P)
 export python3_path=$(which python3)
 export supervisord_path=$(which supervisord)
 export supervisorctl_path=$(which supervisorctl)
 
-cp services/supervisord.conf.orig services/supervisord.conf
-sudo chown root:root services/supervisord.conf.orig
-sudo chmod 655 services/supervisord.conf.orig
-sed -i 's@#PYTHON3#@'"$python3_path"'@g' services/supervisord.conf
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' services/supervisord.conf
+cp ${repo_dir}/services/supervisord.conf.orig ${repo_dir}/services/supervisord.conf
+sudo chown root:root ${repo_dir}/services/supervisord.conf.orig
+sudo chmod 655 ${repo_dir}/services/supervisord.conf.orig
+sed -i 's@#PYTHON3#@'"$python3_path"'@g' ${repo_dir}/services/supervisord.conf
+sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/supervisord.conf
+sed -i 's@#USER#@'"$(who -m | awk '{print $1;}')"'@g' ${repo_dir}/services/supervisord.conf
 #sudo sed -i -e '$i \su '"${USER}"' -c '\''nohup '"${supervisord_path}"' -c '"${repo_dir}"'/supervisord.conf'\''\n' /etc/rc.local
 
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' services/supervisord.service
-sed -i 's@#SUPERVISORD_PATH#@'"$supervisord_path"'@g' services/supervisord.service
-sed -i 's@#SUPERVISORCTL_PATH#@'"$supervisorctl_path"'@g' services/supervisord.service
-sudo mv services/supervisord.service /etc/systemd/system/
+sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/supervisord.service
+sed -i 's@#SUPERVISORD_PATH#@'"$supervisord_path"'@g' ${repo_dir}/services/supervisord.service
+sed -i 's@#SUPERVISORCTL_PATH#@'"$supervisorctl_path"'@g' ${repo_dir}/services/supervisord.service
+sudo cp ${repo_dir}/services/supervisord.service /etc/systemd/system/
 sudo chown root:root /etc/systemd/system/supervisord.service
 sudo chmod 655 /etc/systemd/system/supervisord.service
 sudo systemctl enable supervisord
@@ -131,8 +132,8 @@ echo " "
 #
 #sudo sed -i -e '$i \'"${repo_dir}"'/update-bt-cfg.sh''\n' /etc/rc.local # Update to respect iOS bluetooth specifications
 
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' services/update-bt-cfg.service
-sudo mv services/update-bt-cfg.service /etc/systemd/system/
+sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/update-bt-cfg.service
+sudo cp ${repo_dir}/services/update-bt-cfg.service /etc/systemd/system/
 sudo chown root:root /etc/systemd/system/update-bt-cfg.service
 sudo chmod 655 /etc/systemd/system/update-bt-cfg.service
 sudo systemctl enable update-bt-cfg
@@ -145,11 +146,11 @@ echo "------------------------------------------------------------"
 echo " "
 
 sudo sed -i 's/#dtparam=spi=on/dtparam=spi=on/g' /boot/config.txt
-sudo sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' src/adapters/screen/settings.ini
+sudo sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/src/adapters/screen/settings.ini
 
-sed -i 's@#PYTHON3#@'"$python3_path"'@g' services/screen.service
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' services/screen.service
-sudo mv services/screen.service /etc/systemd/system/
+sed -i 's@#PYTHON3#@'"$python3_path"'@g' ${repo_dir}/services/screen.service
+sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/screen.service
+sudo cp ${repo_dir}/services/screen.service /etc/systemd/system/
 sudo chown root:root /etc/systemd/system/screen.service
 sudo chmod 655 /etc/systemd/system/screen.service
 sudo systemctl enable screen
@@ -167,13 +168,13 @@ echo "----------------------------------------------"
 echo " Add absolut path to the logging.conf file    "
 echo "----------------------------------------------"
 
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' src/logging.conf
+sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/src/logging.conf
 
 echo " "
 echo "----------------------------------------------"
 echo " installation done ! rebooting in 3, 2, 1 "
 echo "----------------------------------------------"
 sleep 3
-sudo reboot
+#sudo reboot
 echo " "
 exit 0
