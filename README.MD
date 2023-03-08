@@ -138,7 +138,7 @@ On a fresh installed Raspbian, git must be installed first
 
 Clone the repo from Github: 
 
-    git clone https://github.com/inonoob/pirowflo.git 
+    git clone https://github.com/LNS-MrGoodkat/pirowflo.git 
     
 go into the folder: 
 
@@ -221,7 +221,7 @@ For example if the Waterrower should send data over Bluetooth and ANT
 
 The PiRowFlo autoupdate function is not yet implemented. Therefore, we recommend to perform the update as follows: 
 
-    git pull https://github.com/inonoob/pirowflo.git 
+    git pull https://github.com/LNS-MrGoodkat/pirowflo.git 
 
 And then start the installation script again
 
