@@ -2,7 +2,7 @@
 # https://stackoverflow.com/questions/9449417/how-do-i-assign-the-output-of-a-command-into-an-array
 
 if [ "$(id -u)" != "0" ]; then
-   echo "This script must be run as root" 1>&2
+   echo "This script must be run as root or with sudo" 1>&2
    exit 1
 fi
 
@@ -97,7 +97,19 @@ sudo bluetoothctl system-alias "PiRowFlo"
 #echo "PRETTY_HOSTNAME=S4 Comms PI" | sudo tee -a /etc/machine-info > /dev/null
 
 
-
+echo " "
+echo "------------------------------------------------------"
+echo " install as cli service or with web interface         "
+echo "------------------------------------------------------"
+echo " "
+while true; do
+    read -p "Do you wish to install web interface? (y/n) " yn
+    case $yn in
+        [Yy]* ) webinterface=yes;break;;
+        [Nn]* ) webinterface=no;break;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
 
 echo " "
 echo "------------------------------------------------------"
@@ -111,23 +123,45 @@ export python3_path=$(which python3)
 export supervisord_path=$(which supervisord)
 export supervisorctl_path=$(which supervisorctl)
 
-cp ${repo_dir}/services/supervisord.conf.orig ${repo_dir}/services/supervisord.conf
-sudo chown root:root ${repo_dir}/services/supervisord.conf.orig
-sudo chmod 655 ${repo_dir}/services/supervisord.conf.orig
-sed -i 's@#PYTHON3#@'"$python3_path"'@g' ${repo_dir}/services/supervisord.conf
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/supervisord.conf
-sed -i 's@#USER#@'"$(who -m | awk '{print $1;}')"'@g' ${repo_dir}/services/supervisord.conf
-#sudo sed -i -e '$i \su '"${USER}"' -c '\''nohup '"${supervisord_path}"' -c '"${repo_dir}"'/supervisord.conf'\''\n' /etc/rc.local
+if [[ $webinterface == 'yes' ]]
+then
+    cp ${repo_dir}/services/supervisord.conf.orig ${repo_dir}/services/supervisord.conf
+    sudo chown root:root ${repo_dir}/services/supervisord.conf.orig
+    sudo chmod 655 ${repo_dir}/services/supervisord.conf.orig
+    sed -i 's@#PYTHON3#@'"$python3_path"'@g' ${repo_dir}/services/supervisord.conf
+    sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/supervisord.conf
+    sed -i 's@#USER#@'"$(who -m | awk '{print $1;}')"'@g' ${repo_dir}/services/supervisord.conf
+    #sudo sed -i -e '$i \su '"${USER}"' -c '\''nohup '"${supervisord_path}"' -c '"${repo_dir}"'/supervisord.conf'\''\n' /etc/rc.local
+    
+    sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/supervisord.service
+    sed -i 's@#SUPERVISORD_PATH#@'"$supervisord_path"'@g' ${repo_dir}/services/supervisord.service
+    sed -i 's@#SUPERVISORCTL_PATH#@'"$supervisorctl_path"'@g' ${repo_dir}/services/supervisord.service
+    sudo cp ${repo_dir}/services/supervisord.service /etc/systemd/system/
+    sudo chown root:root /etc/systemd/system/supervisord.service
+    sudo chmod 655 /etc/systemd/system/supervisord.service
+    sudo systemctl enable supervisord
+else
+    #Autostart PiRowFlow with S4 with Broadcast Bluetooth and ANT
+    cp ${repo_dir}/services/pirowflow_cli.service.orig ${repo_dir}/services/pirowflow_cli.service
+    sed -i 's@#PYTHON3#@'"$python3_path"'@g' ${repo_dir}/services/pirowflow_cli.service
+    sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/pirowflow_cli.service
+    sudo cp ${repo_dir}/services/pirowflow_cli.service /etc/systemd/system/
+    sudo chown root:root /etc/systemd/system/pirowflow_cli.service
+    sudo chmod 655 /etc/systemd/system/pirowflow_cli.service
+    sudo systemctl enable pirowflow_cli
+fi
 
-sed -i 's@#REPO_DIR#@'"$repo_dir"'@g' ${repo_dir}/services/supervisord.service
-sed -i 's@#SUPERVISORD_PATH#@'"$supervisord_path"'@g' ${repo_dir}/services/supervisord.service
-sed -i 's@#SUPERVISORCTL_PATH#@'"$supervisorctl_path"'@g' ${repo_dir}/services/supervisord.service
-sudo cp ${repo_dir}/services/supervisord.service /etc/systemd/system/
-sudo chown root:root /etc/systemd/system/supervisord.service
-sudo chmod 655 /etc/systemd/system/supervisord.service
-sudo systemctl enable supervisord
-sudo rm /tmp/pirowflo*
-sudo rm /tmp/supervisord.log
+if ls /tmp/piroflow* 2> /dev/null; then
+    sudo rm /tmp/pirowflo*
+fi
+if ls /tmp/supervisord.log 2> /dev/null; then
+    sudo rm /tmp/supervisord.log
+fi
+
+
+#Autoshutdown if no S4 is Connected
+sudo chmod 744 ${repo_dir}/services/autoshutdown_S4.sh
+sudo /bin/bash -c 'crontab -l | echo "*/10 * * * * ${repo_dir}/services/autoshutdown_S4.sh" | crontab -'
 
 echo " "
 echo "------------------------------------------------------------"
@@ -181,6 +215,6 @@ echo "----------------------------------------------"
 echo " installation done ! rebooting in 3, 2, 1 "
 echo "----------------------------------------------"
 sleep 3
-#sudo reboot
+sudo reboot
 echo " "
 exit 0

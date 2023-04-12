@@ -1,0 +1,14 @@
+[Unit]
+Description=PiRowFlow_S4_Monitor_Bluetooth_AntPlus
+After=multi-user.target
+
+[Service]
+Type=simple
+KillMode=process
+Restart=on-failure
+RestartSec=50s
+ExecStart=#PYTHON3# #REPO_DIR#/src/waterrowerthreads.py -i s4 -b -a
+
+
+[Install]
+WantedBy=multi-user.target
